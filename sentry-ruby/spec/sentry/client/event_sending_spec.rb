@@ -125,25 +125,21 @@ RSpec.describe Sentry::Client do
         end
       end
 
-      let(:transport) do
-        subject.transport
-      end
-
       it "sends events asynchronously" do
         subject.capture_event(event, scope)
 
-        expect(transport.events.count).to eq(0)
+        expect(subject.transport.events.count).to eq(0)
 
         sleep(0.2)
 
-        expect(transport.events.count).to eq(1)
+        expect(subject.transport.events.count).to eq(1)
       end
 
       context "with hint: { background: false }" do
         it "sends the event immediately" do
           subject.capture_event(event, scope, { background: false })
 
-          expect(transport.events.count).to eq(1)
+          expect(subject.transport.events.count).to eq(1)
         end
       end
 
@@ -153,7 +149,7 @@ RSpec.describe Sentry::Client do
 
           subject.capture_event(event, scope)
 
-          expect(transport.events.count).to eq(1)
+          expect(subject.transport.events.count).to eq(1)
         end
       end
 
@@ -163,9 +159,9 @@ RSpec.describe Sentry::Client do
         subject.capture_event(event, scope)
         expect(subject.transport).to have_recorded_lost_event(:queue_overflow, 'event')
 
-        expect(transport.events.count).to eq(0)
+        expect(subject.transport.events.count).to eq(0)
         sleep(0.2)
-        expect(transport.events.count).to eq(0)
+        expect(subject.transport.events.count).to eq(0)
       end
     end
   end

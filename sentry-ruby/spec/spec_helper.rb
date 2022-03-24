@@ -21,12 +21,34 @@ require "sentry-ruby"
 
 DUMMY_DSN = 'http://12345:67890@sentry.localdomain/sentry/42'
 
+module Sentry
+  module TestHelper
+    def sentry_transport
+      Sentry.get_current_client.transport
+    end
+
+    def sentry_events
+      sentry_transport.events
+    end
+
+    def sentry_envelopes
+      sentry_transport.envelopes
+    end
+
+    def last_sentry_event
+      sentry_events.last
+    end
+  end
+end
+
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
   config.example_status_persistence_file_path = ".rspec_status"
 
   # Disable RSpec exposing methods globally on `Module` and `main`
   config.disable_monkey_patching!
+
+  config.include(Sentry::TestHelper)
 
   config.expect_with :rspec do |c|
     c.syntax = :expect

@@ -7,10 +7,6 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
   let(:additional_headers) { {} }
   let(:env) { Rack::MockRequest.env_for("/test", additional_headers) }
 
-  let(:transport) do
-    Sentry.get_current_client.transport
-  end
-
   describe "exceptions capturing" do
     before do
       perform_basic_setup
@@ -22,7 +18,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
 
       expect { stack.call(env) }.to raise_error(ZeroDivisionError)
 
-      event = transport.events.last.to_hash
+      event = last_sentry_event.to_hash
       expect(event.dig(:request, :url)).to eq("http://example.org/test")
       last_frame = event.dig(:exception, :values, 0, :stacktrace, :frames).last
       expect(last_frame[:vars]).to eq(nil)
@@ -37,9 +33,9 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
 
       expect do
         stack.call(env)
-      end.to change { transport.events.count }.by(1)
+      end.to change { sentry_events.count }.by(1)
 
-      event = transport.events.last
+      event = last_sentry_event
       expect(event.to_hash.dig(:request, :url)).to eq("http://example.org/test")
     end
 
@@ -52,9 +48,9 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
 
       expect do
         stack.call(env)
-      end.to change { transport.events.count }.by(1)
+      end.to change { sentry_events.count }.by(1)
 
-      event = transport.events.last
+      event = last_sentry_event
       expect(event.to_hash.dig(:request, :url)).to eq("http://example.org/test")
     end
 
@@ -67,7 +63,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
 
       stack.call(env)
 
-      event = transport.events.last
+      event = last_sentry_event
       expect(event.transaction).to eq("/test")
       expect(event.to_hash.dig(:request, :url)).to eq("http://example.org/test")
       expect(Sentry.get_current_scope.transaction_names).to be_empty
@@ -105,7 +101,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
 
         expect { stack.call(env) }.to raise_error(ZeroDivisionError)
 
-        event = transport.events.last.to_hash
+        event = last_sentry_event.to_hash
         expect(event.dig(:request, :url)).to eq("http://example.org/test")
         last_frame = event.dig(:exception, :values, 0, :stacktrace, :frames).last
         expect(last_frame[:vars]).to include({ a: "1", b: "0" })
@@ -129,7 +125,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
 
         expect { stack.call(env) }.to raise_error(ZeroDivisionError)
 
-        event = transport.events.last.to_hash
+        event = last_sentry_event.to_hash
         expect(event.dig(:request, :url)).to eq("http://example.org/test")
         last_frame = event.dig(:exception, :values, 0, :stacktrace, :frames).last
         expect(last_frame[:vars]).to include({ a: "1", b: "0", f: "[ignored due to error]" })
@@ -147,7 +143,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
 
         expect { stack.call(env) }.to raise_error(ZeroDivisionError)
 
-        event = transport.events.last.to_hash
+        event = last_sentry_event.to_hash
         expect(event.dig(:request, :url)).to eq("http://example.org/test")
         last_frame = event.dig(:exception, :values, 0, :stacktrace, :frames).last
         expect(last_frame[:vars]).to include({ a: "1", b: "0", long: "*" * 1024 + "..." })
@@ -175,7 +171,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
 
         app_1.call(env)
 
-        event = transport.events.last
+        event = last_sentry_event
         expect(event.breadcrumbs.count).to eq(1)
         expect(event.breadcrumbs.peek.message).to eq("request breadcrumb")
       end
@@ -189,7 +185,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
 
         app_1.call(env)
 
-        event = transport.events.last
+        event = last_sentry_event
         expect(event.tags).to eq(tag_1: "foo")
         expect(Sentry.get_current_scope.tags).to eq(tag_1: "don't change me")
       end
@@ -202,7 +198,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
         app_1 = described_class.new(request_1)
         app_1.call(env)
 
-        event = transport.events.last
+        event = last_sentry_event
         expect(event.tags).to eq(tag_1: "foo")
         expect(Sentry.get_current_scope.tags).to eq(tag_1: "don't change me")
 
@@ -214,7 +210,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
         app_2 = described_class.new(request_2)
         app_2.call(env)
 
-        event = transport.events.last
+        event = last_sentry_event
         expect(event.tags).to eq(tag_2: "bar", tag_1: "don't change me")
         expect(Sentry.get_current_scope.tags).to eq(tag_1: "don't change me")
       end
@@ -277,7 +273,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
       end
 
       let(:transaction) do
-        transport.events.last
+        last_sentry_event
       end
 
       context "with sampled trace" do
@@ -398,7 +394,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
 
         stack.call(env)
 
-        transaction = transport.events.last
+        transaction = last_sentry_event
         expect(transaction.type).to eq("transaction")
         expect(transaction.timestamp).not_to be_nil
         expect(transaction.contexts.dig(:trace, :status)).to eq("ok")
@@ -421,7 +417,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
 
         stack.call(env)
 
-        expect(transport.events.count).to eq(0)
+        expect(sentry_events.count).to eq(0)
       end
     end
 
@@ -441,9 +437,9 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
           stack.call(env)
         end.to raise_error("foo")
 
-        expect(transport.events.count).to eq(2)
-        event = transport.events.first
-        transaction = transport.events.last
+        expect(sentry_events.count).to eq(2)
+        event = sentry_events.first
+        transaction = last_sentry_event
         expect(event.contexts.dig(:trace, :trace_id).length).to eq(32)
         expect(event.contexts.dig(:trace, :trace_id)).to eq(transaction.contexts.dig(:trace, :trace_id))
 
@@ -472,7 +468,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
       it "doesn't record transaction" do
         stack.call(env)
 
-        expect(transport.events.count).to eq(0)
+        expect(sentry_events.count).to eq(0)
       end
 
       context "when sentry-trace header is sent" do
@@ -492,7 +488,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
           response = stack.call(env)
 
           expect(response[0]).to eq(200)
-          expect(transport.events).to be_empty
+          expect(sentry_events).to be_empty
         end
       end
     end
@@ -516,7 +512,7 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
         stack = described_class.new(app)
         stack.call(env)
 
-        expect(transport.envelopes.count).to eq(0)
+        expect(sentry_envelopes.count).to eq(0)
       end
     end
 
@@ -557,12 +553,12 @@ RSpec.describe Sentry::Rack::CaptureExceptions, rack: true do
             expect { stack.call(env) }.to raise_error(ZeroDivisionError)
           end
 
-          expect(transport.events.count).to eq(2)
+          expect(sentry_events.count).to eq(2)
 
           Sentry.session_flusher.flush
 
-          expect(transport.envelopes.count).to eq(1)
-          envelope = transport.envelopes.first
+          expect(sentry_envelopes.count).to eq(1)
+          envelope = sentry_envelopes.first
 
           expect(envelope.items.length).to eq(1)
           item = envelope.items.first
