@@ -4,7 +4,7 @@ RSpec.describe Sentry::Client do
   let(:configuration) do
     Sentry::Configuration.new.tap do |config|
       config.logger = Logger.new(nil)
-      config.dsn = DUMMY_DSN
+      config.dsn = Sentry::TestHelper::DUMMY_DSN
       config.transport.transport_class = Sentry::DummyTransport
     end
   end
@@ -250,7 +250,7 @@ RSpec.describe Sentry::Client do
     end
     let(:configuration) do
       Sentry::Configuration.new.tap do |config|
-        config.dsn = DUMMY_DSN
+        config.dsn = Sentry::TestHelper::DUMMY_DSN
         config.logger = logger
       end
     end

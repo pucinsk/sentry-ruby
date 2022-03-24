@@ -3,7 +3,7 @@ require 'spec_helper'
 RSpec.describe Sentry::Event do
   let(:configuration) do
     Sentry::Configuration.new.tap do |config|
-      config.dsn = DUMMY_DSN
+      config.dsn = Sentry::TestHelper::DUMMY_DSN
     end
   end
 

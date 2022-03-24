@@ -11,7 +11,7 @@ RSpec.describe Sentry do
     context "with block argument" do
       it "initializes the current hub and main hub" do
         described_class.init do |config|
-          config.dsn = DUMMY_DSN
+          config.dsn = Sentry::TestHelper::DUMMY_DSN
         end
 
         current_hub = described_class.get_current_hub
@@ -23,7 +23,7 @@ RSpec.describe Sentry do
 
     context "without block argument" do
       it "initializes the current hub and main hub" do
-        ENV['SENTRY_DSN'] = DUMMY_DSN
+        ENV['SENTRY_DSN'] = Sentry::TestHelper::DUMMY_DSN
 
         described_class.init
 
@@ -539,7 +539,7 @@ RSpec.describe Sentry do
 
     before do
       allow_any_instance_of(Sentry::Configuration).to receive(:project_root).and_return(fake_root)
-      ENV["SENTRY_DSN"] = DUMMY_DSN
+      ENV["SENTRY_DSN"] = Sentry::TestHelper::DUMMY_DSN
     end
 
     it 'defaults to nil' do

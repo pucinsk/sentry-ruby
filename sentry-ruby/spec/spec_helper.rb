@@ -19,10 +19,10 @@ end
 
 require "sentry-ruby"
 
-DUMMY_DSN = 'http://12345:67890@sentry.localdomain/sentry/42'
-
 module Sentry
   module TestHelper
+    DUMMY_DSN = 'http://12345:67890@sentry.localdomain/sentry/42'
+
     def sentry_transport
       Sentry.get_current_client.transport
     end
@@ -112,7 +112,7 @@ end
 def perform_basic_setup
   Sentry.init do |config|
     config.logger = Logger.new(nil)
-    config.dsn = DUMMY_DSN
+    config.dsn = Sentry::TestHelper::DUMMY_DSN
     config.transport.transport_class = Sentry::DummyTransport
     # so the events will be sent synchronously for testing
     config.background_worker_threads = 0
