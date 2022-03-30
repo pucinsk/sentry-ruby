@@ -2,6 +2,16 @@ module Sentry
   module TestHelper
     DUMMY_DSN = 'http://12345:67890@sentry.localdomain/sentry/42'
 
+    # Alters the existing SDK configuration with test-suitable options. Mainly:
+    # - Sets a dummy DSN instead of `nil` or an actual DSN.
+    # - Sets the transport to DummyTransport, which allows easy access to the captured events.
+    # - Disables background worker.
+    # - Makes sure the SDK is enabled under the current environment ("test" in most cases).
+    #
+    # It should be called **before** every test case.
+    #
+    # @yieldparam config [Configuration]
+    # @return [void]
     def setup_sentry_test(&block)
       raise "please make sure the SDK is initialized for testing" unless Sentry.initialized?
       copied_config = Sentry.configuration.dup
@@ -23,6 +33,9 @@ module Sentry
       Sentry.get_current_hub.bind_client(test_client)
     end
 
+    # Clears all stored events and envelopes.
+    # It should be called **after** every test case.
+    # @return [void]
     def teardown_sentry_test
       return unless Sentry.initialized?
 
@@ -30,22 +43,31 @@ module Sentry
       sentry_transport.envelopes = []
     end
 
+    # @return [Transport]
     def sentry_transport
       Sentry.get_current_client.transport
     end
 
+    # Returns the captured event objects.
+    # @return [Array<Event>]
     def sentry_events
       sentry_transport.events
     end
 
+    # Returns the captured envelope objects.
+    # @return [Array<Envelope>]
     def sentry_envelopes
       sentry_transport.envelopes
     end
 
+    # Returns the last captured event object.
+    # @return [Event, nil]
     def last_sentry_event
       sentry_events.last
     end
 
+    # Extracts SDK's internal exception container (not actual exception objects) from an given event.
+    # @return [Array<Sentry::SingleExceptionInterface>]
     def extract_sentry_exceptions(event)
       if event.exception
         event.exception.instance_variable_get(:@values)
